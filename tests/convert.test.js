@@ -26,7 +26,7 @@ test('clone-local entry works from another cwd; cached setup needs no network', 
   const checkout=path.join(dir,'clone 日本語 & (test)'); await mkdir(checkout);
   for(const name of ['src','assets','bin','.cache','package.json','dependencies.json','LICENSE','setup.js']) await cp(path.resolve(name),path.join(checkout,name),{recursive:true});
   const setupURL=pathToFileURL(path.join(checkout,'setup.js')).href;
-  const setup=await command(process.execPath,['--input-type=module','-e',`globalThis.fetch=()=>{throw Error('unexpected network')}; await import(${JSON.stringify(setupURL)});`],{cwd:dir});
+  const setup=await command(process.execPath,['--input-type=module','-e',`globalThis.fetch=()=>{throw Error('unexpected network')}; await (await import(${JSON.stringify(setupURL)})).main([]);`],{cwd:dir});
   assert.equal(setup.code,0,setup.stderr);
   const input=path.join(dir,'資料 & (入力).md'), output=path.join(dir,'結果.html'); await writeFile(input,'# cloneから実行');
   const env={...process.env,MDH_BIN:path.join(checkout,'bin/mdh.cmd'),MDH_INPUT:input,MDH_OUTPUT:output};
@@ -163,5 +163,49 @@ test('setup asset integrity, license coverage and theme contrast', async()=>{
   const contrast=(a,b)=>(Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05);
   for(const color of ['#e2e8f0','#94a3b8','#60a5fa',...Object.values(theme['text-styles']).map(s=>s['text-color'])]) {
     for(const bg of ['#0f172a','#101b2e']) assert(contrast(color,bg)>=4.5,`${color} on ${bg}`);
+  }
+});
+
+test('Windows user PATH add/remove preserves unrelated entries and registry types', { skip: process.platform !== 'win32' }, async () => {
+  const { windowsPathScript } = await import('../setup.js');
+  const keyName = `Software\\mdh-test-${process.pid}-${Date.now()}`;
+  const target = "C:\\資料 & (mdh)\\O'Brien\\bin";
+  const quote = s => "'" + s.replaceAll("'", "''") + "'";
+  const definition = action => `function Invoke-Mdh${action} {\n` + windowsPathScript(action, target).replace("OpenSubKey('Environment', $true)", `OpenSubKey(${quote(keyName)}, $true)`) + '\n}';
+  const operation = action => `Invoke-Mdh${action}`;
+  const script = [
+    "$ErrorActionPreference = 'Stop'",
+    `$testKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey(${quote(keyName)})`,
+    definition('add'), definition('remove'),
+    'try {',
+    "$original = '%USERPROFILE%\\tools;;C:\\Other;'",
+    "$testKey.SetValue('Path', $original, [Microsoft.Win32.RegistryValueKind]::ExpandString)",
+    operation('add'), operation('add'),
+    "$actual = $testKey.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)",
+    `if ($actual -cne (${quote(target + ';')} + $original)) { throw 'Duplicate add or unrelated entries changed' }`,
+    "if ($testKey.GetValueKind('Path') -ne 'ExpandString') { throw 'Value type changed' }",
+    operation('remove'), operation('remove'),
+    "if ($testKey.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames) -cne $original) { throw 'Remove did not preserve original entries' }",
+    // Case, slash, trailing slash and quoted entries should count as this clone.
+    `$testKey.SetValue('Path', ${quote('"' + target.toUpperCase().replaceAll('\\','/') + '/";C:\\Other')}, [Microsoft.Win32.RegistryValueKind]::String)`,
+    operation('add'), operation('remove'),
+    "if ($testKey.GetValue('Path') -cne 'C:\\Other' -or $testKey.GetValueKind('Path') -ne 'String') { throw 'Normalized removal or String type failed' }",
+    "$testKey.DeleteValue('Path')", operation('remove'), operation('add'), operation('remove'),
+    "if ($testKey.GetValue('Path') -ne '') { throw 'Absent/empty PATH failed' }",
+    '} finally {',
+    '$testKey.Dispose()',
+    `[Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree(${quote(keyName)})`,
+    '}'
+  ].join('\n');
+  const result = await command('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')]);
+  assert.equal(result.code, 0, result.stderr + result.stdout);
+});
+
+test('setup rejects invalid arguments and Windows-only PATH commands on Unix', async () => {
+  const invalid = await command(process.execPath, ['setup.js', '--unknown']);
+  assert.equal(invalid.code, 1); assert.match(invalid.stderr, /使い方/);
+  if (process.platform !== 'win32') {
+    const result = await command(process.execPath, ['setup.js', '--add-path']);
+    assert.equal(result.code, 1); assert.match(result.stderr, /Windows専用/);
   }
 });

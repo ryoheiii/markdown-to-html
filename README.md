@@ -89,12 +89,23 @@ node setup.js
 
 **Windows**
 
-1. スタートで「環境変数」を検索し、「環境変数を編集」を開きます。
-2. 「環境変数」→ **ユーザー環境変数**の `Path` →「編集」→「新規」を選びます。
-3. setupが表示した `bin` の絶対パスを追加し、各画面を「OK」で閉じます。
-4. 端末を開き直します。VS Code内の端末を使う場合はVS Codeを再起動します。
+clone先で次を実行するだけで、ユーザーPATHへ恒久登録できます。
 
-`mdh.cmd` を使用するため、PowerShellの実行ポリシー変更は不要です。
+```powershell
+node setup.js --add-path
+```
+
+解除する場合も、clone先で実行します。
+
+```powershell
+node setup.js --remove-path
+```
+
+- 管理者権限・PowerShellの実行ポリシー変更は不要です。
+- 対象はこのcloneの `bin` だけです。ほかのPATH項目は保持します。
+- 追加の再実行で重複せず、削除済みでも再実行できます。通信は行いません。
+- 実行後は端末・Windows Terminal・VS Codeを終了して開き直してください。反映されない場合はWindowsからサインアウトして再ログインします。
+- clone先を移動する場合は、移動前に削除、移動後に追加してください。セミコロン `;` を含む場所は登録できません。
 
 **Ubuntu / WSL（Bash）**
 
@@ -145,7 +156,8 @@ mdh "資料/設計メモ.md"
 | 操作 | 手順 |
 |---|---|
 | 更新 | clone先で `git pull` → `node setup.js` |
-| 削除 | PATHの設定を削除 → clone先を削除 |
+| 削除（Windows） | clone先で `node setup.js --remove-path` → clone先を削除 |
+| 削除（Ubuntu / WSL） | `~/.bashrc` のmdh用PATH行を削除 → clone先を削除 |
 
 ### VS Code
 

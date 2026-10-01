@@ -7,7 +7,7 @@
 | 項目 | 採用方針 |
 |---|---|
 | プロジェクト / CLI | `markdown-to-html` / `mdh` |
-| 導入 | 浅いclone → setup → PATHの恒久設定 |
+| 導入 | 浅いclone → setup → PATHの恒久設定。Windowsは `node setup.js --add-path` / `--remove-path` |
 | 前提 | Node.js 24.21以上・25未満、Pandoc 3.8以上・4未満 |
 | OSS取得 | setupで固定版・ハッシュを確認。取得物はGit管理しない |
 | Mermaid | 12.0.0の公式フル単一JS。必要なHTMLへ一度だけ埋め込む |
@@ -60,6 +60,7 @@ Markdown → Pandoc JSON AST → 資産確認 → Pandoc HTML → 完成ファ�
 | 分野 | 確認内容 |
 |---|---|
 | 導入 | 新規浅いclone、setup、PATH起動、別cwdからの変換 |
+| Windows PATH | 一時レジストリキーで追加・削除・重複防止・既存項目と値の型の保持を確認 |
 | キャッシュ | 正常キャッシュで通信なし。未setupなら手順を案内 |
 | パス | 日本語・空白・&・括弧・#・%、相対出力・相対画像 |
 | 入力 | GFM、BOM/CRLF、生HTML文字表示、数式風テキスト |
@@ -71,7 +72,7 @@ Markdown → Pandoc JSON AST → 資産確認 → Pandoc HTML → 完成ファ�
 | 色 | 本文・補助・ハイライトのコントラスト4.5:1以上 |
 | 異常系 | 依存欠落、権限拒否、Pandoc失敗、入力・既存HTMLの保護 |
 
-2026-10-02のファイル統合後に再検証済みです。CLIはWindowsで15件成功・3件skip、Ubuntuで17件成功・1件skip（OS専用項目）。Chromium・Firefoxの表示試験も両OSで成功しました。
+2026-10-02のファイル統合後に再検証済みです。CLIはWindowsで17件成功・3件skip、Ubuntuで18件成功・2件skip（OS専用項目）。Chromium・Firefoxの表示試験も両OSで成功しました。
 
 CI: [GitHub Actions](https://github.com/ryoheiii/markdown-to-html/actions)。[clone/setup方式の成功記録](https://github.com/ryoheiii/markdown-to-html/actions/runs/36891303183)。
 
