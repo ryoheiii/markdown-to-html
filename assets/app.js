@@ -11,7 +11,7 @@
     const tools = document.createElement('div'); tools.className = 'code-tools';
     const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Copy';
     const status = document.createElement('span'); status.className = 'copy-status'; status.setAttribute('role', 'status');
-    tools.append(button, status); wrapper.prepend(tools);
+    tools.append(button); wrapper.prepend(tools); wrapper.append(status);
     button.addEventListener('click', async () => {
       status.textContent = '';
       try {

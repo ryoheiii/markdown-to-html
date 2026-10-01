@@ -29,9 +29,12 @@ pre{white-space:pre;overflow:auto;padding:.9rem;margin:0;background:#101b2e;bord
 div.sourceCode{margin:0;background:transparent;overflow:visible}
 pre.sourceCode{margin:0;overflow:auto}
 pre code{white-space:pre;background:none}
-.code-block{margin:1rem 0;min-width:0}
-.code-tools{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.35rem;font-size:.8125rem}
-.copy-status{color:var(--muted)}
+.code-block{position:relative;margin:1rem 0;min-width:0}
+.code-block pre{padding-top:2.5rem}
+.code-tools{position:absolute;top:.4rem;right:.5rem;z-index:1;font-size:.75rem}
+.code-tools button{padding:.15rem .5rem}
+.copy-status{display:block;margin-top:.35rem;color:var(--muted);font-size:.8125rem}
+.copy-status:empty{display:none}
 table{display:block;max-width:100%;overflow:auto;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
 th,td{padding:.5rem .75rem;border:1px solid var(--line);text-align:left}th{background:#223451}
 hr{border:0;border-top:1px solid var(--line);margin:1.5rem 0}
@@ -44,4 +47,4 @@ figure.mdh-diagram{margin:1rem 0;padding:.75rem;border:1px solid var(--line);bor
 .licenses pre{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:.5rem;font-size:.75rem}
 [hidden]{display:none!important}
 @media(max-width:850px){#mdh-toc{position:static;width:auto;max-height:40vh;border-right:0;border-bottom:1px solid var(--line)}#mdh-content{margin:0;padding:1rem 1.25rem}.licenses,.no-script{margin:1rem 1.25rem}}
-@media print{:root{color-scheme:light}body{background:white;color:black}#mdh-content{margin:0;max-width:none;padding:0}#mdh-toc,.code-tools,.licenses,.skip,.no-script{display:none}pre{background:white;color:black}a{color:#164a87}figure.mdh-diagram{background:white}}
+@media print{:root{color-scheme:light}body{background:white;color:black}#mdh-content{margin:0;max-width:none;padding:0}#mdh-toc,.code-tools,.copy-status,.licenses,.skip,.no-script{display:none}pre{background:white;color:black}.code-block pre{padding-top:.9rem}a{color:#164a87}figure.mdh-diagram{background:white}}
