@@ -1,0 +1,22 @@
+mdh's original code, CSS and template: MIT, see LICENSE.
+Generated HTML preserves this license and, when Mermaid is present, the
+third-party notices in vendor/mermaid-notices.txt as readable text.
+
+Mermaid 12.0.0: https://github.com/mermaid-js/mermaid/tree/mermaid%4012.0.0
+Official full IIFE from the npm release, not rebundled. MIT; see
+vendor/MERMAID-LICENSE. Its original bundled license comments are preserved.
+Additional upstream dependency license texts and origins are collected in
+vendor/mermaid-notices.txt. This collection intentionally includes dependencies
+that might not be exercised by mdh. It does not claim all components are MIT.
+
+ELK/elkjs is included by Mermaid's official full build, under EPL-2.0.
+Corresponding source: https://github.com/kieler/elkjs/tree/v0.9.3
+ELK source: https://github.com/eclipse/elk
+No upstream modifications are made. EPL-covered code retains its own license;
+mdh's MIT license does not replace it. See the full EPL text in vendor notices.
+
+Pandoc is an external executable, not included in this archive. Install its
+official distribution separately (GPL-2.0-or-later): https://pandoc.org
+Node.js is also an external prerequisite, not redistributed here.
+Playwright and browser downloads are development/test-only, excluded from the
+runtime archive. Their license files are in the installed development packages.

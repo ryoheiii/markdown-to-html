@@ -1,0 +1,44 @@
+name: mdh
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+          cache: npm
+      - name: Pandoc 3.8 (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/jgm/pandoc/releases/download/3.8/pandoc-3.8-windows-x86_64.zip -OutFile "$env:RUNNER_TEMP/pandoc.zip"
+          Expand-Archive "$env:RUNNER_TEMP/pandoc.zip" "$env:RUNNER_TEMP/pandoc"
+          "$env:RUNNER_TEMP/pandoc/pandoc-3.8" | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Pandoc 3.8 (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          curl -fsSL https://github.com/jgm/pandoc/releases/download/3.8/pandoc-3.8-linux-amd64.tar.gz -o "$RUNNER_TEMP/pandoc.tar.gz"
+          tar -xzf "$RUNNER_TEMP/pandoc.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/pandoc-3.8/bin" >> "$GITHUB_PATH"
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium firefox
+      - run: npm run test:risk
+      - run: npm test
+      - run: npm run test:browser
+      - run: npm run test:package
+      - run: npm pack
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mdh-${{ matrix.os }}
+          include-hidden-files: true
+          path: |
+            *.tgz
+            .test-output/browser/*.png

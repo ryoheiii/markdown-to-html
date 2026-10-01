@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>$pagetitle$</title>
+$if(highlighting-css)$<style>$highlighting-css$</style>$endif$
+$for(header-includes)$$header-includes$$endfor$
+</head>
+<body>
+<a class="skip" href="#mdh-content">本文へ移動</a>
+$if(toc)$<nav id="mdh-toc" aria-label="目次"><h2>目次</h2>$table-of-contents$</nav>$endif$
+<main id="mdh-content">$body$</main>
+<noscript><p class="no-script">JavaScriptが無効です。Mermaidはソースを表示します。Copyボタンと目次の開閉にはJavaScriptが必要です。</p></noscript>
+$for(include-after)$$include-after$$endfor$
+</body>
+</html>
