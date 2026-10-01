@@ -14,12 +14,64 @@ Markdown・ローカル画像・Mermaidから、持ち運べる単一HTMLを作�
 | Node.js | 24.21以上・25未満 | [公式サイト](https://nodejs.org/en/download) |
 | Pandoc | 3.8以上・4未満 | [公式サイト](https://pandoc.org/installing.html) |
 
-Ubuntuのapt版Pandocは古い場合があります。導入後に確認してください。
+以下は検証に使用した **Node.js 24.21.0 / Pandoc 3.8** を入れる手順です。すでに対応版がある場合は「バージョン確認」へ進んでください。
+
+#### Windows（x64）
+
+1. [Node.js 24.21.0の公式MSI](https://nodejs.org/dist/v24.21.0/node-v24.21.0-x64.msi)をダウンロードして実行します。
+   - ライセンスを確認し、標準のインストール先・`Add to PATH` を維持してインストールします。
+   - ネイティブモジュール用の追加ツールは不要です。
+2. [Pandoc 3.8の公式MSI](https://github.com/jgm/pandoc/releases/download/3.8/pandoc-3.8-windows-x86_64.msi)をダウンロードして実行し、画面に従ってインストールします。PATHも設定されます。
+3. PowerShellを開き直します。VS Codeを使っている場合はVS Codeも再起動します。
+
+配布元: [Node.js](https://nodejs.org/en/download/archive/v24.21.0) / [Pandocの導入案内](https://pandoc.org/installing.html)。
+
+#### Ubuntu / WSL（x86_64・Bash）
+
+WSLでは、以下を**Ubuntuの端末内**で実行します。Windows側とは別に導入してください。
+
+**① 取得用ツールを準備**
+
+```sh
+sudo apt update
+sudo apt install -y git curl ca-certificates xz-utils
+```
+
+**② Node.jsをユーザーフォルダーに展開**
+
+```sh
+mkdir -p "$HOME/.local"
+curl -fL https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.xz -o /tmp/node-v24.21.0-linux-x64.tar.xz
+tar -xJf /tmp/node-v24.21.0-linux-x64.tar.xz -C "$HOME/.local"
+```
+
+`~/.bashrc` をエディターで開き、末尾に次の行を追加して保存します（恒久設定）。
+
+```sh
+export PATH="$HOME/.local/node-v24.21.0-linux-x64/bin:$PATH"
+```
+
+**③ Pandocの公式debをインストール**
+
+```sh
+curl -fL https://github.com/jgm/pandoc/releases/download/3.8/pandoc-3.8-1-amd64.deb -o /tmp/pandoc-3.8-1-amd64.deb
+sudo dpkg -i /tmp/pandoc-3.8-1-amd64.deb
+```
+
+Ubuntu標準リポジトリのPandocは対応版より古い場合があるため、ここでは[公式debの導入手順](https://pandoc.org/installing.html#linux)を使います。完了後、端末を開き直してください。
+
+上記はx64向けの手順です。ARM64では[Node.jsの配布一覧](https://nodejs.org/en/download/archive/v24.21.0)・[Pandocの配布一覧](https://github.com/jgm/pandoc/releases/tag/3.8)から対応する資産を選んでください。ARM64環境での動作は未検証です。
+
+#### バージョン確認
+
+新しい端末で実行します。
 
 ```sh
 node --version
 pandoc --version
 ```
+
+この手順では `v24.21.0` と `pandoc 3.8` が表示されれば導入完了です。古い版が表示される場合は、Windowsでは `where.exe node` / `where.exe pandoc`、Ubuntuでは `command -v node` / `command -v pandoc` で参照先を確認し、PATH内の古い設定を修正してください。
 
 ### 2. cloneしてsetupする
 
