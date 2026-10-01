@@ -209,3 +209,22 @@ test('setup rejects invalid arguments and Windows-only PATH commands on Unix', a
     assert.equal(result.code, 1); assert.match(result.stderr, /Windows専用/);
   }
 });
+
+test('optional section numbering affects headings and TOC without changing source or links', () => temporary(async dir => {
+  const input=path.join(dir,'sections.md'), output=path.join(dir,'sections.html');
+  const source='# Overview\n\n## Purpose\n\n### Scope\n\n# Install\n';
+  await writeFile(input,source);
+  assert.equal((await mdh([input,'-o',output])).code,0);
+  const plain=await readFile(output,'utf8');
+  assert(!plain.includes('class="header-section-number"'));
+  const result=await mdh([input,'--number-sections','-o',output]);
+  assert.equal(result.code,0,result.stderr);
+  const numbered=await readFile(output,'utf8');
+  for(const number of ['1','1.1','1.1.1','2']) {
+    assert(numbered.includes(`class="header-section-number">${number}</span>`));
+    assert(numbered.includes(`class="toc-section-number">${number}</span>`));
+  }
+  assert.deepEqual([...numbered.matchAll(/<h[1-6]\b[^>]*\bid="([^"]+)"/g)].map(m=>m[1]), [...plain.matchAll(/<h[1-6]\b[^>]*\bid="([^"]+)"/g)].map(m=>m[1]));
+  assert.equal(await readFile(input,'utf8'),source);
+  assert.match((await mdh(['--help'])).stdout,/--number-sections/);
+}));

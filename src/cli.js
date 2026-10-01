@@ -4,8 +4,12 @@ import { pathToFileURL } from 'node:url';
 import { convert, resource, checkAssets, run, checkPandoc } from './convert.js';
 
 const help = `mdh — Markdown → 単一オフラインHTML
-Usage: mdh <input.md> [-o output.html] [--open]
+Usage: mdh <input.md> [-o output.html] [--open] [--number-sections]
        mdh --doctor | --help | --version
+章番号: --number-sections で本文の見出し・目次に 1 / 1.1 / 1.1.1 を付けます（既定: なし）。
+例: mdh document.md --number-sections
+見出しは # → ## → ### の順で使ってください。# のタイトルも番号付きになります。
+手書き番号は自動除去しません。Markdown原本は変更しません。
 相対画像は入力のフォルダー基準、-oは現在の作業フォルダー基準です。
 CLIの成功はHTML生成の成功です。Mermaidは閲覧時に描画・エラー表示します。`;
 const version = JSON.parse(await readFile(resource('package.json'), 'utf8')).version;
@@ -25,10 +29,11 @@ async function main() {
     return;
   }
   checkNode();
-  let input, output, open = false, literal = false;
+  let input, output, open = false, literal = false, numberSections = false;
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
     if (!literal && arg === '--') { literal = true; continue; }
+    if (!literal && arg === '--number-sections') { numberSections = true; continue; }
     if (!literal && arg === '--open') { open = true; continue; }
     if (!literal && ['-o', '--output'].includes(arg)) {
       if (output !== undefined || !args[index + 1] || args[index + 1].startsWith('-')) throw new Error('-oには出力パスを1つ指定してください。');
@@ -39,7 +44,7 @@ async function main() {
     input = arg;
   }
   if (!input) throw new Error(help);
-  const result = await convert(input, output);
+  const result = await convert(input, output, { numberSections });
   for (const warning of result.warnings) console.error(`mdh: warning: ${warning}`);
   console.log(result.output);
   if (open) {

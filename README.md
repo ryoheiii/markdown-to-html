@@ -138,6 +138,7 @@ mdh "資料/設計メモ.md"
 | 操作 | コマンド |
 |---|---|
 | HTMLを作る | `mdh document.md` |
+| 章番号付きHTMLを作る | `mdh document.md --number-sections` |
 | 出力先を指定する | `mdh document.md -o "出力/document.html"` |
 | 生成後に開く | `mdh document.md --open` |
 | 導入状態を確認する | `mdh --doctor` |
@@ -150,6 +151,33 @@ mdh "資料/設計メモ.md"
 | 相対画像パス | 入力Markdownのフォルダー |
 
 **CLIの成功はHTML生成の成功です。** Mermaidは閲覧時に描画し、不正な図にはエラーと元ソースを表示します。他の図や本文は引き続き利用できます。
+
+### 章番号を自動で付ける
+
+`--number-sections` を指定すると、本文の見出しと目次に番号が付きます。省略すると番号なしです。Markdown原本は変更しません。
+
+```sh
+mdh document.md --number-sections
+mdh document.md --number-sections -o "出力/document.html" --open
+```
+
+| Markdownの見出し（記述順） | HTMLの表示 |
+|---|---|
+| `# 概要` | 1 概要 |
+| `## 目的` | 1.1 目的 |
+| `### 対象` | 1.1.1 対象 |
+| `# 導入` | 2 導入 |
+
+- `#` → `##` → `###` と階層順に記述してください。`##` から始めるなど階層を飛ばすと、`0.1` のように0を含む番号になる場合があります。
+- 文書タイトルを `#` で書いた場合も、最初の章として番号が付きます。
+- 手書きの番号は自動除去しません。`# 1. 概要` などの資料には指定しないか、手書き番号を取り除いてください。
+- 番号付けは[Pandocの標準機能](https://pandoc.org/MANUAL.html#option--number-sections)を使用します。目次に載せる見出しは従来どおりH1〜H3です。
+
+VS Codeのタスクでも、`args` に `"--number-sections"` を追加できます。
+
+```json
+"args": ["C:/tools/markdown-to-html/src/cli.js", "${file}", "--number-sections"]
+```
 
 ### 更新・削除
 

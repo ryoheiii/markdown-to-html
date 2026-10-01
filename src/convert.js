@@ -82,7 +82,7 @@ async function sameFile(input, output) {
   } catch (e) { if (e.code === 'ENOENT') return false; throw e; }
 }
 
-export async function convert(inputArg, outputArg) {
+export async function convert(inputArg, outputArg, { numberSections = false } = {}) {
   const input = path.resolve(inputArg);
   const output = outputArg ? path.resolve(outputArg) : path.join(path.dirname(input), path.basename(input, path.extname(input)) + '.html');
   if (input === output || await sameFile(input, output)) throw new Error('入力と出力が同じファイルです。入力は上書きできません。');
@@ -135,7 +135,7 @@ export async function convert(inputArg, outputArg) {
     const license = await readFile(resource('LICENSE'), 'utf8');
     await writeFile(path.join(temp, 'after.html'), `${vendor}<details class="licenses"><summary>mdh / MIT License</summary><pre>${escapeHTML(license)}</pre></details><script>${app}</script>`);
     const destination = path.join(temp, 'result.html');
-    const result = await run('pandoc', ['--from', 'json', '--to', 'html5', '--standalone', '--embed-resources', '--toc', '--toc-depth=3', '--template', resource('assets/template.html'), '--syntax-highlighting', resource('assets/syntax.theme'), '--include-in-header', path.join(temp, 'head.html'), '--include-after-body', path.join(temp, 'after.html'), '--metadata', `pagetitle=${path.basename(input)}`, '--output', destination, path.join(temp, 'ast.json')], { cwd });
+    const result = await run('pandoc', ['--from', 'json', '--to', 'html5', '--standalone', '--embed-resources', '--toc', '--toc-depth=3', ...(numberSections ? ['--number-sections'] : []), '--template', resource('assets/template.html'), '--syntax-highlighting', resource('assets/syntax.theme'), '--include-in-header', path.join(temp, 'head.html'), '--include-after-body', path.join(temp, 'after.html'), '--metadata', `pagetitle=${path.basename(input)}`, '--output', destination, path.join(temp, 'ast.json')], { cwd });
     if (result.stderr.trim()) {
       if (/CouldNotFetchResource|Could not fetch resource/i.test(result.stderr)) throw new Error(result.stderr.trim());
       warnings.push(result.stderr.trim());
