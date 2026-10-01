@@ -30,7 +30,8 @@ div.sourceCode{margin:0;background:transparent;overflow:visible}
 pre.sourceCode{margin:0;overflow:auto}
 pre code{white-space:pre;background:none}
 .code-block{position:relative;margin:1rem 0;min-width:0}
-.code-block pre{padding-top:2.5rem}
+.code-block pre{padding-right:4.5rem}
+.code-block pre code{display:block;overflow-x:auto}
 .code-tools{position:absolute;top:.4rem;right:.5rem;z-index:1;font-size:.75rem}
 .code-tools button{padding:.15rem .5rem}
 .copy-status{display:block;margin-top:.35rem;color:var(--muted);font-size:.8125rem}
@@ -47,4 +48,4 @@ figure.mdh-diagram{margin:1rem 0;padding:.75rem;border:1px solid var(--line);bor
 .licenses pre{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:.5rem;font-size:.75rem}
 [hidden]{display:none!important}
 @media(max-width:850px){#mdh-toc{position:static;width:auto;max-height:40vh;border-right:0;border-bottom:1px solid var(--line)}#mdh-content{margin:0;padding:1rem 1.25rem}.licenses,.no-script{margin:1rem 1.25rem}}
-@media print{:root{color-scheme:light}body{background:white;color:black}#mdh-content{margin:0;max-width:none;padding:0}#mdh-toc,.code-tools,.copy-status,.licenses,.skip,.no-script{display:none}pre{background:white;color:black}.code-block pre{padding-top:.9rem}a{color:#164a87}figure.mdh-diagram{background:white}}
+@media print{:root{color-scheme:light}body{background:white;color:black}#mdh-content{margin:0;max-width:none;padding:0}#mdh-toc,.code-tools,.copy-status,.licenses,.skip,.no-script{display:none}pre{background:white;color:black}.code-block pre{padding-right:.9rem}a{color:#164a87}figure.mdh-diagram{background:white}}
