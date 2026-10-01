@@ -159,15 +159,83 @@ mdh "資料/設計メモ.md"
 | 削除（Windows） | clone先で `node setup.js --remove-path` → clone先を削除 |
 | 削除（Ubuntu / WSL） | `~/.bashrc` のmdh用PATH行を削除 → clone先を削除 |
 
-### VS Code
+### VS Code（Windowsから実行）
 
-保存済みファイルを標準のprocessタスクから実行できます。
+Windows版VS Codeの標準タスクに登録すると、編集中のMarkdownを選んで変換できます。追加の拡張機能は不要です。以下は通常のWindowsウィンドウ向けです（Remote WSL・SSH・コンテナー接続は対象外）。
 
-| 設定 | 値 |
+#### 1. VS Code内で導入状態を確認する
+
+1. 上の手順でWindowsにNode.js・Pandocを導入し、clone先で `node setup.js` と `node setup.js --add-path` を実行します。
+2. **VS Codeの全ウィンドウを終了してから起動し直します。** PATH変更前から開いているWindows Terminalも終了してください。
+3. 「ファイル」→「フォルダーを開く」で、変換したいMarkdownがあるフォルダーを開きます。
+4. 「ターミナル」→「新しいターミナル」で **PowerShell** を選び、次を実行します。
+
+```powershell
+node --version
+pandoc --version
+mdh --doctor
+```
+
+`mdh --doctor` のNode・Pandoc・Assetsがすべて `OK` なら準備完了です。表示される `Install:` がmdhのclone先です。
+
+#### 2. ユーザータスクを登録する（初回のみ）
+
+1. `Ctrl+Shift+P` でコマンドパレットを開きます。
+2. `Tasks: Open User Tasks`（タスク: ユーザータスクを開く）を検索して実行します。テンプレートを聞かれたら `Others` を選びます。
+3. 開いた `tasks.json` に以下を設定して保存します。既存のタスクがある場合は、`tasks` 配列へ今回のタスクを追加してください。
+4. **`C:/tools/markdown-to-html/src/cli.js` は実際のclone先に置き換えます。** Windowsでも `/` 区切りで書けます。空白を含むパスにも追加の引用符は不要です。
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "mdh: 開いているMarkdownをHTMLに変換",
+      "type": "process",
+      "command": "node",
+      "args": [
+        "C:/tools/markdown-to-html/src/cli.js",
+        "${file}"
+      ],
+      "options": {
+        "cwd": "${fileDirname}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ]
+}
+```
+
+ユーザータスクなので、ほかのフォルダーでも同じ設定を使えます。タスクでは `node` からCLIを直接起動し、Windowsのバッチファイルの引用処理を避けています。設定は[VS Code公式のTasks仕様](https://code.visualstudio.com/docs/debugtest/tasks)に基づきます。
+
+#### 3. Markdownを変換する
+
+1. 変換したい `.md` をエディターで開き、`Ctrl+S` で保存します。
+2. **そのMarkdownのタブを選んだ状態で** `Ctrl+Shift+P` → `Tasks: Run Task`（タスクの実行）→ `mdh: 開いているMarkdownをHTMLに変換` を選びます。
+3. ターミナルに出力先が表示され、Markdownと同じフォルダーに同名の `.html` が生成されます。既存の同名HTMLは、変換成功時に更新されます。
+4. HTMLをエクスプローラーからブラウザーで開きます。
+
+生成直後にブラウザーで開きたい場合は、タスクの `args` を次の形にします。
+
+```json
+"args": ["C:/tools/markdown-to-html/src/cli.js", "${file}", "--open"]
+```
+
+変換対象はディスク上の保存済み内容です。新規の未保存タブや、`tasks.json` を選んだままで実行しないでください。`${file}` は現在開いているファイル、`${fileDirname}` はそのフォルダーを指します（[公式の変数一覧](https://code.visualstudio.com/docs/reference/variables-reference)）。
+
+#### うまく動かない場合
+
+| 症状 | 確認すること |
 |---|---|
-| `type` | `process` |
-| `command` | `node` |
-| `args` | `["clone先/src/cli.js", "${file}"]` |
+| `node` / `pandoc` / `mdh` が見つからない | VS Codeを全終了して再起動。PowerShellで `where.exe node` / `where.exe pandoc` / `where.exe mdh` を確認 |
+| `Cannot find module ...cli.js` | `args` のclone先を修正。`src/cli.js` まで指定しているか確認 |
+| Mermaidのsetupが必要と表示される | mdhのclone先で `node setup.js` を実行 |
+| 編集内容が反映されない | 対象Markdownを保存し、そのタブを選んで再実行 |
+| タスクが見つからない | ユーザーの `tasks.json` を保存し、JSONのエラーがないか確認 |
 
 ## 対応範囲
 
