@@ -1,10 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, writeFile, mkdir, copyFile, readdir, link, chmod, cp, rename } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, copyFile, readdir, link, chmod, cp, rename, mkdtemp, rm } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
-import { convert } from '../src/convert.js';
-import { temporary, mdh, command, cli } from './helpers.js';
+import { convert, checkAssets, mermaidAsset } from '../src/convert.js';
+import { spawn } from 'node:child_process';
+import { tmpdir } from 'node:os';
+
+const cli = path.resolve('src/cli.js');
+async function temporary(fn) {
+  const directory = await mkdtemp(path.join(tmpdir(), 'mdh-test-'));
+  try { return await fn(directory); } finally { await rm(directory, { force: true, recursive: true }); }
+}
+function command(exe, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(exe, args, { ...options, windowsHide: true, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', x => stdout += x); child.stderr.on('data', x => stderr += x);
+    child.on('error', reject); child.on('close', code => resolve({ code, stdout, stderr }));
+  });
+}
+const mdh = (args, opts) => command(process.execPath, [cli, ...args], opts);
 
 test('clone-local entry works from another cwd; cached setup needs no network', () => temporary(async dir => {
   const checkout=path.join(dir,'clone 日本語 & (test)'); await mkdir(checkout);
@@ -135,3 +151,17 @@ test('Pandoc writer failure preserves old HTML and removes temporary output', {s
   assert.equal(result.code,1); assert.match(result.stderr,/simulated writer failure/);
   assert.equal(await readFile(output,'utf8'),'previous'); assert(!(await readdir(dir)).some(name=>name.startsWith('.mdh-')));
 }));
+
+test('setup asset integrity, license coverage and theme contrast', async()=>{
+  assert.equal(await checkAssets(),'Mermaid 12.0.0');
+  const js=await readFile(mermaidAsset('mermaid.min.js'),'utf8');
+  assert(!/sourceMappingURL\s*=/.test(js)); assert(js.includes('Bundled license information'));
+  const notices=await readFile(mermaidAsset('licenses.txt'),'utf8');
+  for (const text of ['Mermaid','dompurify@3.4.12','elkjs@0.9.3','Eclipse Public License','Apache License','lodash-es@4.18.1']) assert(notices.includes(text),text);
+  const theme=JSON.parse(await readFile('assets/syntax.theme','utf8'));
+  const luminance=hex=>hex.match(/[0-9a-f]{2}/gi).map(x=>parseInt(x,16)/255).map(c=>c<=.04045?c/12.92:((c+.055)/1.055)**2.4).reduce((sum,c,i)=>sum+c*[.2126,.7152,.0722][i],0);
+  const contrast=(a,b)=>(Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05);
+  for(const color of ['#e2e8f0','#94a3b8','#60a5fa',...Object.values(theme['text-styles']).map(s=>s['text-color'])]) {
+    for(const bg of ['#0f172a','#101b2e']) assert(contrast(color,bg)>=4.5,`${color} on ${bg}`);
+  }
+});

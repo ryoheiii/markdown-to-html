@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
-import { convert } from './convert.js';
-import { resource, checkAssets } from './assets.js';
-import { run, checkPandoc } from './process.js';
+import { convert, resource, checkAssets, run, checkPandoc } from './convert.js';
 
 const help = `mdh — Markdown → 単一オフラインHTML
 Usage: mdh <input.md> [-o output.html] [--open]

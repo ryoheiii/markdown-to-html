@@ -36,7 +36,14 @@ try {
   await writeFile(new URL('licenses.txt.tmp', directory), notices);
   await rename(new URL('licenses.txt.tmp', directory), new URL('licenses.txt', directory));
   console.log(`Mermaid ${dependencies.version}: ready (${fileURLToPath(directory)})`);
-  console.log('リポジトリの bin をPATHへ追加し、mdh --doctor でNode/Pandocを確認してください。');
+  const bin = fileURLToPath(new URL('./bin', import.meta.url));
+  if (process.platform === 'win32') {
+    console.log(`恒久設定: Windowsの「環境変数」→ ユーザーのPath → 新規 に次を追加:\n${bin}`);
+  } else {
+    const quoted = "'" + bin.replaceAll("'", "'\\''") + "'";
+    console.log(`恒久設定: ~/.bashrc の末尾に次の行を追加:\nexport PATH=${quoted}:"$PATH"`);
+  }
+  console.log('新しい端末を開き、mdh --doctor を実行してください。詳しくはREADMEの「導入」を参照。');
 } catch (error) {
   console.error(`setup: ${error.message}\nネットワークを確認して node setup.js を再実行してください。`);
   process.exitCode = 1;
