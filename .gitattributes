@@ -1,6 +1,4 @@
 * text=auto eol=lf
-# Preserve upstream bytes and hash-checked notice files on every platform.
-vendor/** -text
 *.png -text
 *.jpg -text
 *.gif -text

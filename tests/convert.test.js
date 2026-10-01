@@ -1,9 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, writeFile, mkdir, copyFile, readdir, link, chmod } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, copyFile, readdir, link, chmod, cp, rename } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { convert } from '../src/convert.js';
 import { temporary, mdh, command, cli } from './helpers.js';
+
+test('clone-local entry works from another cwd; cached setup needs no network', () => temporary(async dir => {
+  const checkout=path.join(dir,'clone 日本語 & (test)'); await mkdir(checkout);
+  for(const name of ['src','assets','bin','.cache','package.json','dependencies.json','LICENSE','setup.js']) await cp(path.resolve(name),path.join(checkout,name),{recursive:true});
+  const setupURL=pathToFileURL(path.join(checkout,'setup.js')).href;
+  const setup=await command(process.execPath,['--input-type=module','-e',`globalThis.fetch=()=>{throw Error('unexpected network')}; await import(${JSON.stringify(setupURL)});`],{cwd:dir});
+  assert.equal(setup.code,0,setup.stderr);
+  const input=path.join(dir,'資料 & (入力).md'), output=path.join(dir,'結果.html'); await writeFile(input,'# cloneから実行');
+  const env={...process.env,MDH_BIN:path.join(checkout,'bin/mdh.cmd'),MDH_INPUT:input,MDH_OUTPUT:output};
+  for(const key of Object.keys(env)) if(key.toLowerCase()==='path') delete env[key];
+  env.PATH=path.dirname(process.execPath)+path.delimiter+(process.env.PATH||process.env.Path);
+  let result;
+  if(process.platform==='win32') result=await command('powershell.exe',['-NoProfile','-NonInteractive','-Command','& $env:MDH_BIN $env:MDH_INPUT -o $env:MDH_OUTPUT; exit $LASTEXITCODE'],{cwd:dir,env});
+  else result=await command(path.join(checkout,'bin/mdh'),[input,'-o',output],{cwd:dir,env});
+  assert.equal(result.code,0,result.stderr); assert.match(await readFile(output,'utf8'),/cloneから実行/);
+  const previous=await readFile(output,'utf8');
+  await rename(path.join(checkout,'.cache'),path.join(checkout,'hidden-cache'));
+  const missing=await command(process.execPath,[path.join(checkout,'src/cli.js'),input,'-o',output],{cwd:dir,env});
+  assert.equal(missing.code,1); assert.match(missing.stderr,/node setup.js/);
+  assert.equal(await readFile(output,'utf8'),previous);
+}));
 
 test('UTF-8 BOM / CRLF, Japanese + space + symbols paths, input-relative images, cwd-relative output', () => temporary(async dir => {
   const source = path.join(dir, '日本語 資料 & (a) # %'); await mkdir(source);

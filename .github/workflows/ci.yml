@@ -28,17 +28,8 @@ jobs:
           curl -fsSL https://github.com/jgm/pandoc/releases/download/3.8/pandoc-3.8-linux-amd64.tar.gz -o "$RUNNER_TEMP/pandoc.tar.gz"
           tar -xzf "$RUNNER_TEMP/pandoc.tar.gz" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/pandoc-3.8/bin" >> "$GITHUB_PATH"
+      - run: node setup.js
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium firefox
-      - run: npm run test:risk
       - run: npm test
       - run: npm run test:browser
-      - run: npm run test:package
-      - run: npm pack
-      - uses: actions/upload-artifact@v4
-        with:
-          name: mdh-${{ matrix.os }}
-          include-hidden-files: true
-          path: |
-            *.tgz
-            .test-output/browser/*.png

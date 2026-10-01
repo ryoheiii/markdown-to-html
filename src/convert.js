@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir, mkdtemp, rm, rename, stat, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { run, checkPandoc } from './process.js';
-import { resource, escapeHTML, utf8, localImage, checkAssets } from './assets.js';
+import { resource, mermaidAsset, escapeHTML, utf8, localImage, checkAssets } from './assets.js';
 
 export const reader = 'gfm-tex_math_dollars-tex_math_gfm-yaml_metadata_block';
 
@@ -56,9 +56,9 @@ export async function convert(inputArg, outputArg) {
     const app = await readFile(resource('assets/app.js'), 'utf8');
     let vendor = '';
     if (mermaidCount) {
-      const js = await readFile(resource('vendor/mermaid.min.js'), 'utf8');
-      if (/<\/script/i.test(js)) throw new Error('同梱Mermaidを安全にインライン化できません。');
-      const notices = await readFile(resource('vendor/mermaid-notices.txt'), 'utf8');
+      const js = await readFile(mermaidAsset('mermaid.min.js'), 'utf8');
+      if (/<\/script/i.test(js)) throw new Error('Mermaidを安全にインライン化できません。');
+      const notices = await readFile(mermaidAsset('licenses.txt'), 'utf8');
       vendor = `<script>${js}</script><details class="licenses"><summary>Mermaid / Third-party licenses</summary><pre>${escapeHTML(notices)}</pre></details>`;
     }
     await writeFile(path.join(temp, 'head.html'), `<style>${css}</style>`);
