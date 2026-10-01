@@ -17,11 +17,12 @@
 
 1366×768、1920×1080、狭幅、文字サイズ200%で横はみ出しなし。本文・補助・ハイライト色のコントラスト4.5:1以上。WCAG全体への適合宣言ではない。
 
-初回GitHub CIは[成功](https://github.com/ryoheiii/markdown-to-html/actions/runs/36888217939)。これは旧導入方式のコミットに対する結果。
+現行GitHub CI: [clone/setup方式のWindows・Ubuntu実行結果](https://github.com/ryoheiii/markdown-to-html/actions/runs/36891303183)。
 
 ## 現行導入方式
 
 - 初回setupで固定版を取得・SHA-256検証。取得済みキャッシュでは通信を禁止してもsetup成功。
+- 公開リポジトリを新しい場所へ `git clone --depth 1` し、setup・PATH登録・doctor・サンプル変換に成功。取得した履歴は1コミットでvendorディレクトリなし。
 - 通常利用にnode_modulesは不要。日本語・空白・&・括弧を含むclone先を別ディレクトリに置き、異なるcwdからbinの入口で変換。
 - setup資産がない場合は再実行方法を表示し、既存HTMLを維持。
 - CLI／資産テスト18件: Windows 15成功・Unix専用3skip、Ubuntu/WSL 17成功・Windows専用1skip。失敗0。
