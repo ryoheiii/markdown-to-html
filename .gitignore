@@ -4,3 +4,7 @@ node_modules/
 .test-output/
 *.tgz
 dist/
+
+# Local reference import and generated documentation
+/sankou_md_to_html/
+/README.html

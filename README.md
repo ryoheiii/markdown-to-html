@@ -1,316 +1,192 @@
-# markdown-to-html
+---
+title: Markdown → 単一 HTML 変換（mdh）
+---
 
-Markdown・ローカル画像・Mermaidから、持ち運べる単一HTMLを作るCLI **`mdh`** です。
+Markdown を、画像・Mermaid の図・目次を含む **1 つの HTML ファイル**に変換するコマンドです。
+画像や CSS・JavaScript を HTML に埋め込み、元の Markdown や画像を一緒に配布せずに閲覧できます。スクリプトが動的に取得する外部データなどは、オフラインでは利用できません。
 
-[導入](#導入) · [使い方](#使い方) · [対応範囲](#対応範囲) · [開発](#開発) · [仕様・検証記録](docs/PLAN.md)
+# 動作環境
 
-## 導入
+| 項目 | 要件 |
+| --- | --- |
+| OS | Windows（x64）、Ubuntu / WSL（x86_64 / ARM64） |
+| Node.js | 20.20.0 以降 |
+| Pandoc | 3.1.3 以降 |
+| 閲覧 | Edge / Chrome / Firefox などの現行ブラウザー |
 
-### 1. 必要なソフトを入れる
+Node.js と Pandoc は、次のセットアップ手順で導入します。対応版がインストール済みであれば、そのまま使用できます。
 
-| ソフト | 対応版 | 入手先 |
-|---|---|---|
-| Git | cloneに使用 | [公式サイト](https://git-scm.com/downloads) |
-| Node.js | 24.21以上・25未満 | [公式サイト](https://nodejs.org/en/download) |
-| Pandoc | 3.8以上・4未満 | [公式サイト](https://pandoc.org/installing.html) |
+# セットアップ
 
-以下は検証に使用した **Node.js 24.21.0 / Pandoc 3.8** を入れる手順です。すでに対応版がある場合は「バージョン確認」へ進んでください。
+## プロジェクトを取得する
 
-#### Windows（x64）
-
-1. [Node.js 24.21.0の公式MSI](https://nodejs.org/dist/v24.21.0/node-v24.21.0-x64.msi)をダウンロードして実行します。
-   - ライセンスを確認し、標準のインストール先・`Add to PATH` を維持してインストールします。
-   - ネイティブモジュール用の追加ツールは不要です。
-2. [Pandoc 3.8の公式MSI](https://github.com/jgm/pandoc/releases/download/3.8/pandoc-3.8-windows-x86_64.msi)をダウンロードして実行し、画面に従ってインストールします。PATHも設定されます。
-3. PowerShellを開き直します。VS Codeを使っている場合はVS Codeも再起動します。
-
-配布元: [Node.js](https://nodejs.org/en/download/archive/v24.21.0) / [Pandocの導入案内](https://pandoc.org/installing.html)。
-
-#### Ubuntu / WSL（x86_64・Bash）
-
-WSLでは、以下を**Ubuntuの端末内**で実行します。Windows側とは別に導入してください。
-
-**① 取得用ツールを準備**
-
-```sh
-sudo apt update
-sudo apt install -y git curl ca-certificates xz-utils
-```
-
-**② Node.jsをユーザーフォルダーに展開**
-
-```sh
-mkdir -p "$HOME/.local"
-curl -fL https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.xz -o /tmp/node-v24.21.0-linux-x64.tar.xz
-tar -xJf /tmp/node-v24.21.0-linux-x64.tar.xz -C "$HOME/.local"
-```
-
-`~/.bashrc` をエディターで開き、末尾に次の行を追加して保存します（恒久設定）。
-
-```sh
-export PATH="$HOME/.local/node-v24.21.0-linux-x64/bin:$PATH"
-```
-
-**③ Pandocの公式debをインストール**
-
-```sh
-curl -fL https://github.com/jgm/pandoc/releases/download/3.8/pandoc-3.8-1-amd64.deb -o /tmp/pandoc-3.8-1-amd64.deb
-sudo dpkg -i /tmp/pandoc-3.8-1-amd64.deb
-```
-
-Ubuntu標準リポジトリのPandocは対応版より古い場合があるため、ここでは[公式debの導入手順](https://pandoc.org/installing.html#linux)を使います。完了後、端末を開き直してください。
-
-上記はx64向けの手順です。ARM64では[Node.jsの配布一覧](https://nodejs.org/en/download/archive/v24.21.0)・[Pandocの配布一覧](https://github.com/jgm/pandoc/releases/tag/3.8)から対応する資産を選んでください。ARM64環境での動作は未検証です。
-
-#### バージョン確認
-
-新しい端末で実行します。
-
-```sh
-node --version
-pandoc --version
-```
-
-この手順では `v24.21.0` と `pandoc 3.8` が表示されれば導入完了です。古い版が表示される場合は、Windowsでは `where.exe node` / `where.exe pandoc`、Ubuntuでは `command -v node` / `command -v pandoc` で参照先を確認し、PATH内の古い設定を修正してください。
-
-### 2. cloneしてsetupする
+Git で取得し、プロジェクトのフォルダーに移動します。**以降のセットアップコマンドは、このフォルダーで実行します。**
 
 ```sh
 git clone --depth 1 https://github.com/ryoheiii/markdown-to-html.git
 cd markdown-to-html
-node setup.js
 ```
 
-- 通常利用に `npm install` は不要です。
-- setupは固定版Mermaidとライセンスを取得し、SHA-256を確認して `.cache/` に保存します。
-- 通信は初回setupなど、取得が必要なときだけです。変換・HTML閲覧はオフラインで使えます。
+## Windows
 
-### 3. PATHを恒久設定する
+1. Node.js と Pandoc をインストールします（対応版がインストール済みなら不要）。
+   公式インストーラーを、既定の設定のまま実行してください。
 
-**Windows**
+   - [Node.js 24.21.0](https://nodejs.org/dist/v24.21.0/node-v24.21.0-x64.msi)
+   - [Pandoc 3.8.1](https://github.com/jgm/pandoc/releases/download/3.8.1/pandoc-3.8.1-windows-x86_64.msi)
 
-clone先で次を実行するだけで、ユーザーPATHへ恒久登録できます。
+2. PowerShell を開き直し、セットアップと mdh の登録を行います。
 
-```powershell
-node setup.js --add-path
-```
+   ```sh
+   node setup.js
+   node setup.js --add-path
+   ```
 
-解除する場合も、clone先で実行します。
+3. PowerShell と VS Code の**ウィンドウをすべて閉じてから開き直し**、動作を確認します。
 
-```powershell
-node setup.js --remove-path
-```
+   ```sh
+   mdh --doctor
+   ```
 
-- 管理者権限・PowerShellの実行ポリシー変更は不要です。
-- 対象はこのcloneの `bin` だけです。ほかのPATH項目は保持します。
-- 追加の再実行で重複せず、削除済みでも再実行できます。通信は行いません。
-- 実行後は端末・Windows Terminal・VS Codeを終了して開き直してください。反映されない場合はWindowsからサインアウトして再ログインします。
-- clone先を移動する場合は、移動前に削除、移動後に追加してください。セミコロン `;` を含む場所は登録できません。
+   Node / Pandoc / Assets がすべて `OK` なら完了です。
 
-**Ubuntu / WSL（Bash）**
+## Ubuntu / WSL
 
-1. `~/.bashrc` をエディターで開きます。
-2. setupが表示した `export PATH=...` の行を末尾に追加して保存します。
-3. 端末を開き直します。
+WSL の場合は、Ubuntu の端末で実行します。オプションは Windows の `node setup.js` と共通です。
 
-記載例（パスは実際のclone先に置き換えてください）:
+1. `~/.local/bin` を PATH に追加します（追加済みなら不要）。
+   `~/.bashrc` の末尾に次の行を追加し、端末を開き直してください。
+
+   ```sh
+   export PATH="$HOME/.local/bin:$PATH"
+   ```
+
+2. ダウンロード用のツールをインストールします（インストール済みなら不要）。
+
+   ```sh
+   sudo apt update
+   sudo apt install -y curl ca-certificates xz-utils
+   ```
+
+3. Node.js と Pandoc を導入します。対応版がすでに使える場合は、何も変更しません。
+
+   ```sh
+   bash setup.sh --install-node
+   bash setup.sh --install-pandoc
+   ```
+
+4. セットアップと mdh の登録を行います。
+
+   ```sh
+   bash setup.sh
+   bash setup.sh --add-path
+   ```
+
+   - `bash setup.sh`: Mermaid の検証・必要時の取得と実行ファイルの準備だけを行います。mdh の登録やシェルの PATH 設定は行いません。
+   - `bash setup.sh --add-path`: `~/.local/bin/mdh` のリンクを作成します。Mermaid の取得は行いません。
+   - 初回は両方を実行してください。すでに正しいリンクがある場合は `--add-path` の再実行は不要です。
+
+5. 動作を確認します。
+
+   ```sh
+   mdh --doctor
+   ```
+
+   Node / Pandoc / Assets がすべて `OK` なら完了です。
+
+# 使い方
 
 ```sh
-# ~/.bashrc に記載する行
-export PATH='/home/yourname/markdown-to-html/bin':"$PATH"
+mdh document.md
 ```
 
-Bash以外では、利用しているシェルの起動設定ファイルへ設定してください。
+Markdown と同じフォルダーに `document.html` を作成し、出力先を表示します。見出しと目次には、既定で章番号が付きます。入力した Markdown は変更しません。
 
-### 4. 動作を確認する
-
-新しい端末で実行します。
-
-```sh
-mdh --doctor
-mdh "資料/設計メモ.md"
-```
-
-> clone先は実行時にも必要です。移動した場合はPATHを更新してください。
-
-## 使い方
-
-| 操作 | コマンド |
-|---|---|
-| HTMLを作る | `mdh document.md` |
-| 章番号付きHTMLを作る | `mdh document.md --number-sections` |
+| 目的 | コマンド |
+| --- | --- |
+| 章番号付きの HTML を作成する（既定） | `mdh document.md` |
+| 章番号なしの HTML を作成する | `mdh document.md --no-number-sections` |
 | 出力先を指定する | `mdh document.md -o "出力/document.html"` |
-| 生成後に開く | `mdh document.md --open` |
-| 導入状態を確認する | `mdh --doctor` |
-| ヘルプを見る | `mdh --help` |
+| 作成後にブラウザーで開く | `mdh document.md --open` |
+| 環境を診断する | `mdh --doctor` |
+| ヘルプ・バージョンを表示する | `mdh --help` / `mdh --version` |
 
-| パス | 基準 |
-|---|---|
-| 既定の出力 | 入力と同じフォルダーの同名 `.html` |
-| 相対 `-o` | コマンドを実行したフォルダー |
-| 相対画像パス | 入力Markdownのフォルダー |
+- 章番号は既定で有効なため、`--number-sections` の指定は不要です。指定しても結果は同じです。`--no-number-sections` と両方を指定した場合は、後の指定を優先します。
+- 空白や日本語を含むパスは、引用符で囲んでください。
+- コマンド引数の相対パスは、実行したフォルダーが基準です。文書内の画像や CSS などのリソースは、Markdown のフォルダーが基準です。
+- デザインを変更する場合は、`--css`（CSS ファイル）や `--after-body`（本文末尾に追加する HTML）を指定します。
 
-**CLIの成功はHTML生成の成功です。** Mermaidは閲覧時に描画し、不正な図にはエラーと元ソースを表示します。他の図や本文は引き続き利用できます。
+## Markdown の書き方
 
-### 章番号を自動で付ける
+### 文書タイトル
 
-`--number-sections` を指定すると、本文の見出しと目次に番号が付きます。省略すると番号なしです。Markdown原本は変更しません。
+Markdown の先頭に次の YAML を書くと、本文の上にタイトルを表示します。
+
+```yaml
+---
+title: ビルドおよび更新手順書
+---
+```
+
+- タイトルは省略できます。省略・空欄の場合はカードを表示せず、タブ名にはファイル名を使用します。
+- `:` を含む場合などは、`title: "資料名: 詳細"` のように引用符で囲んでください。
+- `title` の強調などは Pandoc が解釈します。`subtitle`・`author`・`date` もタイトル欄に表示でき、タブ名は `pagetitle` で指定できます。
+
+### 本文の書式
+
+- 見出しは `#` → `##` → `###` → `####` の順に使います。目次には `####`（H4）までの4階層が表示されます。
+- 章番号は既定で自動的に付きます。見出しに手書きの番号を付けると二重になるため、手書きの番号を使う場合は `--no-number-sections` を指定してください。
+- 書式は Pandoc の `markdown` の標準仕様です。脚注・定義リスト・各種テーブル・数式・見出しやリンクの属性も Pandoc に従います。数式の表示は標準の HTML5 出力を使用します。
+- ローカル画像・URL 画像・data URI は、Pandoc の `--embed-resources` で埋め込みます。URL 画像などの取得には、変換時に通信が必要です。必要なリソースを取得できない場合は変換を中止します。
+- 画像のファイル名に空白・`#`・`%` を含む場合は、URL エンコードしてください（例: 空白は `%20`）。
+- HTML のタグ・属性・CSS は Pandoc の解釈どおりに出力します。`<figure>` / `<img>` / `<figcaption>`、`rowspan` / `colspan` を使う表、`<details>` / `<summary>` も使用できます。標準デザインでは画像の縦横比を保ち、表の見出しセルは青背景・濃紺の太字で表示します。
+- 図は、言語に `mermaid` を指定したコードブロックで記述します。構文・設定の対応範囲は HTML に埋め込む Mermaid に従い、描画時は `securityLevel: 'strict'` を使用します。外部画像などを描画時に取得する図は、オフライン表示を保証しません。
+- 図の「拡大表示」で画面全体を使って確認できます。全体表示・拡大縮小・ドラッグ移動が可能で、`Esc` で閉じます。
+- 太字は `**強調したい文字**` と書きます。`**【必須】**文字コード` のように日本語が隣接していても使用できます。`**` のすぐ内側には空白を入れないでください。
+- 赤字は `<span style="color:red;">文字</span>`、赤い太字は `<span style="color:red;">**文字**</span>`、下線は `<u>文字</u>` または `[文字]{.underline}` と書けます。通常のコードブロック内の HTML は実行せず、そのまま表示します。
+
+# 全体設計
+
+- **変換の基本**: Pandoc の `-f markdown -t html5` です。Markdown の解析と HTML 生成は Pandoc に任せ、標準の拡張・HTML・属性・メタデータを使用します。
+- **処理の流れ**: `mdh` → Node.js → Pandoc で Markdown を JSON AST に解析 → Mermaid のコードブロックを表示用要素に置換 → Pandoc で単一 HTML を生成します。`--standalone`・`--embed-resources`・H4 までの目次・構文強調を使用し、章番号は既定で有効です（`--no-number-sections` で無効化できます）。
+- **表示**: [assets/template.html](assets/template.html) がページ構成、[assets/theme.css](assets/theme.css) がデザイン、[assets/app.js](assets/app.js) が目次の開閉・現在位置・表の横スクロール・コードのコピー・Mermaid の描画と拡大表示を担当します。JavaScript が無効でも本文と目次は読め、Mermaid はソースを表示します。
+- **依存と出力**: Node.js と Pandoc はローカル環境で実行します。Mermaid はセットアップ時に SHA-256 を検証し、図がある文書だけに埋め込みます。入力は変更せず、一時ファイルで変換が成功してから出力先を置き換えます。
+
+**信頼できる Markdown・画像・カスタム CSS / HTML を使用してください。** HTML や YAML の `header-includes` などをサニタイズするツールではありません。文書内のスクリプトやイベント属性は、生成した HTML を開くと実行される場合があります。
+
+# 登録解除・アンインストール
+
+プロジェクトのフォルダーで、不要になったものだけを実行します。
+
+| 対象 | Windows | Ubuntu / WSL |
+| --- | --- | --- |
+| mdh の登録 | `node setup.js --remove-path` | `bash setup.sh --remove-path` |
+| Pandoc | 「設定」→「アプリ」からアンインストール | `bash setup.sh --remove-pandoc` |
+| Node.js | 「設定」→「アプリ」からアンインストール | `bash setup.sh --remove-node` |
+
+- Ubuntu のコマンドは、`setup.sh` で導入したものだけを削除します。元から入っていた Node.js / Pandoc や、`~/.bashrc` の設定は変更しません。
+- Node.js / Pandoc は、他のツールで使われている場合があります。削除する前に確認してください。
+- プロジェクトのフォルダーを削除する場合は、先に mdh の登録を解除してください。
+
+# Mermaid とライセンス
+
+Mermaid のバンドルやライセンスの取得物は Git に同梱しません。
+`node setup.js` が `dependencies.json` に固定した Mermaid 12.0.0 と第三者ライセンスを取得し、SHA-256 を検証して `.cache/mermaid-12.0.0/` に保存します。検証済みのファイルは再利用するため、毎回の取得は不要です。初回セットアップにはインターネット接続が必要です。
+
+図を含む HTML には Mermaid 本体と第三者ライセンスを埋め込みます。mdh の MIT ライセンスも HTML に含めます。配布時にはこれらの表記を保持してください。図がない文書の変換に Mermaid は不要です。
+
+# 開発・検証
+
+通常の変換では npm install は不要です。開発用の依存とブラウザーを準備し、次のテストを実行できます。
 
 ```sh
-mdh document.md --number-sections
-mdh document.md --number-sections -o "出力/document.html" --open
-```
-
-| Markdownの見出し（記述順） | HTMLの表示 |
-|---|---|
-| `# 概要` | 1 概要 |
-| `## 目的` | 1.1 目的 |
-| `### 対象` | 1.1.1 対象 |
-| `# 導入` | 2 導入 |
-
-- `#` → `##` → `###` と階層順に記述してください。`##` から始めるなど階層を飛ばすと、`0.1` のように0を含む番号になる場合があります。
-- 文書タイトルを `#` で書いた場合も、最初の章として番号が付きます。
-- 手書きの番号は自動除去しません。`# 1. 概要` などの資料には指定しないか、手書き番号を取り除いてください。
-- 番号付けは[Pandocの標準機能](https://pandoc.org/MANUAL.html#option--number-sections)を使用します。目次に載せる見出しは従来どおりH1〜H3です。
-
-VS Codeのタスクでも、`args` に `"--number-sections"` を追加できます。
-
-```json
-"args": ["C:/tools/markdown-to-html/src/cli.js", "${file}", "--number-sections"]
-```
-
-### 更新・削除
-
-| 操作 | 手順 |
-|---|---|
-| 更新 | clone先で `git pull` → `node setup.js` |
-| 削除（Windows） | clone先で `node setup.js --remove-path` → clone先を削除 |
-| 削除（Ubuntu / WSL） | `~/.bashrc` のmdh用PATH行を削除 → clone先を削除 |
-
-### VS Code（Windowsから実行）
-
-Windows版VS Codeの標準タスクに登録すると、編集中のMarkdownを選んで変換できます。追加の拡張機能は不要です。以下は通常のWindowsウィンドウ向けです（Remote WSL・SSH・コンテナー接続は対象外）。
-
-#### 1. VS Code内で導入状態を確認する
-
-1. 上の手順でWindowsにNode.js・Pandocを導入し、clone先で `node setup.js` と `node setup.js --add-path` を実行します。
-2. **VS Codeの全ウィンドウを終了してから起動し直します。** PATH変更前から開いているWindows Terminalも終了してください。
-3. 「ファイル」→「フォルダーを開く」で、変換したいMarkdownがあるフォルダーを開きます。
-4. 「ターミナル」→「新しいターミナル」で **PowerShell** を選び、次を実行します。
-
-```powershell
-node --version
-pandoc --version
-mdh --doctor
-```
-
-`mdh --doctor` のNode・Pandoc・Assetsがすべて `OK` なら準備完了です。表示される `Install:` がmdhのclone先です。
-
-#### 2. ユーザータスクを登録する（初回のみ）
-
-1. `Ctrl+Shift+P` でコマンドパレットを開きます。
-2. `Tasks: Open User Tasks`（タスク: ユーザータスクを開く）を検索して実行します。テンプレートを聞かれたら `Others` を選びます。
-3. 開いた `tasks.json` に以下を設定して保存します。既存のタスクがある場合は、`tasks` 配列へ今回のタスクを追加してください。
-4. **`C:/tools/markdown-to-html/src/cli.js` は実際のclone先に置き換えます。** Windowsでも `/` 区切りで書けます。空白を含むパスにも追加の引用符は不要です。
-
-```json
-{
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "mdh: 開いているMarkdownをHTMLに変換",
-      "type": "process",
-      "command": "node",
-      "args": [
-        "C:/tools/markdown-to-html/src/cli.js",
-        "${file}"
-      ],
-      "options": {
-        "cwd": "${fileDirname}"
-      },
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      }
-    }
-  ]
-}
-```
-
-ユーザータスクなので、ほかのフォルダーでも同じ設定を使えます。タスクでは `node` からCLIを直接起動し、Windowsのバッチファイルの引用処理を避けています。設定は[VS Code公式のTasks仕様](https://code.visualstudio.com/docs/debugtest/tasks)に基づきます。
-
-#### 3. Markdownを変換する
-
-1. 変換したい `.md` をエディターで開き、`Ctrl+S` で保存します。
-2. **そのMarkdownのタブを選んだ状態で** `Ctrl+Shift+P` → `Tasks: Run Task`（タスクの実行）→ `mdh: 開いているMarkdownをHTMLに変換` を選びます。
-3. ターミナルに出力先が表示され、Markdownと同じフォルダーに同名の `.html` が生成されます。既存の同名HTMLは、変換成功時に更新されます。
-4. HTMLをエクスプローラーからブラウザーで開きます。
-
-生成直後にブラウザーで開きたい場合は、タスクの `args` を次の形にします。
-
-```json
-"args": ["C:/tools/markdown-to-html/src/cli.js", "${file}", "--open"]
-```
-
-変換対象はディスク上の保存済み内容です。新規の未保存タブや、`tasks.json` を選んだままで実行しないでください。`${file}` は現在開いているファイル、`${fileDirname}` はそのフォルダーを指します（[公式の変数一覧](https://code.visualstudio.com/docs/reference/variables-reference)）。
-
-#### うまく動かない場合
-
-| 症状 | 確認すること |
-|---|---|
-| `node` / `pandoc` / `mdh` が見つからない | VS Codeを全終了して再起動。PowerShellで `where.exe node` / `where.exe pandoc` / `where.exe mdh` を確認 |
-| `Cannot find module ...cli.js` | `args` のclone先を修正。`src/cli.js` まで指定しているか確認 |
-| Mermaidのsetupが必要と表示される | mdhのclone先で `node setup.js` を実行 |
-| 編集内容が反映されない | 対象Markdownを保存し、そのタブを選んで再実行 |
-| タスクが見つからない | ユーザーの `tasks.json` を保存し、JSONのエラーがないか確認 |
-
-## 対応範囲
-
-| 項目 | 動作 |
-|---|---|
-| Markdown | 一般的なGFM構文、UTF-8（BOM可）、LF/CRLF |
-| ローカル画像 | PNG / JPEG / WebP / GIF / 外部依存のないSVG |
-| HTML | 単一ファイル。`file://`・オフライン・元資料不在で表示 |
-| 見た目 | ダークブルー、H1〜H3の目次、コードハイライト |
-| 大きい表・コード・図 | 内部で横スクロール |
-| コピー拒否 | コードを選択し、Ctrl+C等の手動操作を案内 |
-| JavaScript無効 | 本文・画像・目次・Mermaidソースを表示 |
-| 変換失敗 | 既存HTMLを維持。入力の上書きを拒否 |
-| `--open`失敗 | 生成済みHTMLを残し、警告を表示 |
-
-### 非対応・制限
-
-- 数式、生HTMLの実行、外部URL画像の取得。
-- Mermaidの独自config/CSS・画像・外部アイコン、SVG内のスクリプト・外部依存。
-- UNC・ネットワーク共有・特殊デバイスパスは正式検証対象外。
-- WindowsとWSLのパスは自動変換しません。
-- Markdown画像パスの空白・`#`・`%`は適切にURLエンコードしてください。
-
-## 開発
-
-```sh
+node setup.js
 npm ci --ignore-scripts
-npx playwright install chromium firefox
+npx playwright install --with-deps chromium firefox
 npm test
 npm run test:browser
 ```
 
-setup済みのclone先で実行します。Playwrightはテスト専用です。
+テストは Pandoc 標準出力との比較、入出力の保護、セットアップ、オフライン表示、目次・コピー・図の拡大操作を確認します。詳細は [仕様・検証記録](docs/PLAN.md) を参照してください。
 
-| 場所 | 役割 |
-|---|---|
-| `bin/` | OS別のPATH用入口 |
-| `src/cli.js` | 引数・診断・ブラウザー起動 |
-| `src/convert.js` | Pandoc呼び出し・資産確認・HTML生成 |
-| `assets/` | 自作テンプレート・CSS・閲覧用JS |
-| `setup.js` / `dependencies.json` | 固定版の取得・ハッシュ |
-| `tests/convert.test.js` / `tests/browser.js` | 変換と表示のテスト |
-| [docs/PLAN.md](docs/PLAN.md) | 仕様・検証記録 |
-
-## ライセンス
-
-- 本体: [MIT](LICENSE)。
-- 取得したOSS: 各上流ライセンスに従います。
-- 生成HTML: Mermaid・必要なライセンス表示・ELKのソース案内を保持します。
-- 過去のvendor資産: Git履歴に残ります。導入例の `--depth 1` では取得しません。
+Ubuntu / WSL では `--container` を指定して、固定した Pandoc コンテナで変換することもできます。Docker または Podman が必要です（初回はイメージの取得も必要）。`CONTAINER_RUNTIME=docker` または `podman` で選択できます。文書内のローカルリソースは入力フォルダー内に置いてください。`TEST_CONTAINER_RUNTIME=docker npm test` でコンテナ専用テストを有効にできます。

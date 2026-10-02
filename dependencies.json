@@ -73,5 +73,6 @@
     "stylis@4.3.6/LICENSE": "88c579c6ee44b41137a21321190d177982e5b17d4fa1b83a4a2e3ea325a8fc9a",
     "ts-dedent@2.2.0/LICENSE": "eff13095d9d762c3bd9dda74370c81e2130c28f2691bc455603abf973bac25b9",
     "uuid@14.0.0/LICENSE.md": "beaa6b04fb82e41dd2ad679e19e27953afb5999b1abbb455b6564e78ebfeb332"
-  }
+  },
+  "url": "https://cdn.jsdelivr.net/npm/mermaid@12.0.0/dist/mermaid.min.js"
 }

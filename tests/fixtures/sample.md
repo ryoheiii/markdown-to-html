@@ -47,15 +47,15 @@ trailing spaces
 <script>alert('example')</script>
 ```
 
-数式はテキスト: $a+b$ と $$c=d$$。
+数式: $a+b$ と $$c=d$$。
 
 ```math
 x^2 + y^2 = z^2
 ```
 
-<script>window.unwanted = true;</script>
+<script>window.documentScript = true;</script>
 
-<div>生HTMLは文字として表示</div>
+<div>生HTMLは Pandoc 標準で表示</div>
 
 ````markdown
 ```mermaid

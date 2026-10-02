@@ -1,58 +1,79 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
-import { pathToFileURL } from 'node:url';
-import { convert, resource, checkAssets, run, checkPandoc } from './convert.js';
+import { convert } from './convert.js';
+import { resource, checkNode, dependencies } from './environment.js';
+import { isMainModule } from './entry-point.js';
+import { checkAssets, readMermaid } from './assets.js';
+import { checkPandoc, createPandoc } from './pandoc.js';
+import { openHtml } from './open.js';
 
-const help = `mdh — Markdown → 単一オフラインHTML
-Usage: mdh <input.md> [-o output.html] [--open] [--number-sections]
+const help = `mdh — Markdown → 単一オフライン HTML
+Usage: mdh <input.md> [-o output.html] [--open] [--no-number-sections]
        mdh --doctor | --help | --version
-章番号: --number-sections で本文の見出し・目次に 1 / 1.1 / 1.1.1 を付けます（既定: なし）。
-例: mdh document.md --number-sections
-見出しは # → ## → ### の順で使ってください。# のタイトルも番号付きになります。
-手書き番号は自動除去しません。Markdown原本は変更しません。
-相対画像は入力のフォルダー基準、-oは現在の作業フォルダー基準です。
-CLIの成功はHTML生成の成功です。Mermaidは閲覧時に描画・エラー表示します。`;
+Node.js 20.20.0 以降 / Pandoc 3.1.3 以降。
+--number-sections / --no-number-sections: 見出し・目次の章番号を有効 / 無効化。
+  既定は章番号付き・目次 H1〜H4。Markdown 原本は変更しません。
+--css PATH / --after-body PATH: 信頼できるカスタム CSS / HTML 断片。`;
 const version = JSON.parse(await readFile(resource('package.json'), 'utf8')).version;
-function checkNode() {
-  const [major, minor] = process.versions.node.split('.').map(Number);
-  if (major !== 24 || minor < 21) throw new Error(`Node.js 24.21.0以上、25未満が必要です（現在 ${process.version}）。https://nodejs.org/`);
-}
-async function main() {
-  const args = process.argv.slice(2);
-  if (args.length === 1 && ['--help', '-h'].includes(args[0])) { console.log(help); return; }
-  if (args.length === 1 && args[0] === '--version') { console.log(version); return; }
-  if (args.length === 1 && args[0] === '--doctor') {
-    console.log(`mdh ${version} / ${process.platform} ${process.arch}\nNode: ${process.version} (${process.execPath})\nInstall: ${resource('')}`);
-    for (const [label, check] of [['Node', checkNode], ['Pandoc', checkPandoc], ['Assets', checkAssets]]) {
-      try { console.log(`${label}: OK ${await check() || ''}`); } catch (e) { console.error(`${label}: ERROR ${e.message}`); process.exitCode = 1; }
-    }
-    return;
-  }
-  checkNode();
-  let input, output, open = false, literal = false, numberSections = false;
+
+function usageError(message) { const error = new Error(message); error.exitCode = 2; return error; }
+
+export function parseArguments(args) {
+  const positional = [];
+  const options = { numberSections: true };
+  let output, open = false, action, literal = false;
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
     if (!literal && arg === '--') { literal = true; continue; }
-    if (!literal && arg === '--number-sections') { numberSections = true; continue; }
+    if (!literal && ['--help', '-h', '--version', '--doctor'].includes(arg)) { action = arg === '-h' ? '--help' : arg; continue; }
+    if (!literal && arg === '--number-sections') { options.numberSections = true; continue; }
+    if (!literal && arg === '--no-number-sections') { options.numberSections = false; continue; }
+    if (!literal && arg === '--container') { options.container = true; continue; }
     if (!literal && arg === '--open') { open = true; continue; }
-    if (!literal && ['-o', '--output'].includes(arg)) {
-      if (output !== undefined || !args[index + 1] || args[index + 1].startsWith('-')) throw new Error('-oには出力パスを1つ指定してください。');
-      output = args[++index]; continue;
+    if (!literal && ['-o', '--output', '--css', '--after-body'].includes(arg)) {
+      const key = ['-o', '--output'].includes(arg) ? 'output' : arg === '--css' ? 'cssFile' : 'afterBodyFile';
+      const value = args[++index];
+      if (!value || value.startsWith('-') || (key === 'output' ? output !== undefined : options[key] !== undefined)) throw usageError(`${arg} にはパスを1つ指定してください。`);
+      if (key === 'output') output = value; else options[key] = value;
+      continue;
     }
-    if (!literal && arg.startsWith('-')) throw new Error(`不明なオプション: ${arg}`);
-    if (input !== undefined) throw new Error('入力は1ファイルだけ指定してください。');
-    input = arg;
+    if (!literal && arg.startsWith('-')) throw usageError(`不明なオプション: ${arg}`);
+    positional.push(arg);
   }
-  if (!input) throw new Error(help);
-  const result = await convert(input, output, { numberSections });
+  if (action) {
+    if (positional.length || output !== undefined || open || options.cssFile || options.afterBodyFile) throw usageError('診断・ヘルプと変換引数は同時に指定できません。');
+    return { action, options };
+  }
+  if (!positional[0] || positional.length !== 1) throw usageError(help);
+  return { input: positional[0], output, options, open };
+}
+
+export async function main(args = process.argv.slice(2)) {
+  const parsed = parseArguments(args);
+  if (parsed.action === '--help') { console.log(help); return; }
+  if (parsed.action === '--version') { console.log(version); return; }
+  if (parsed.action === '--doctor') {
+    console.log(`mdh ${version} / ${process.platform} ${process.arch}\nNode: ${process.version} (${process.execPath})\nInstall: ${resource('')}`);
+    for (const [label, check] of [
+      ['Node', checkNode], ['Pandoc', async () => checkPandoc((await createPandoc(parsed.options)).run)], ['Assets', checkAssets],
+    ]) {
+      try { console.log(`${label}: OK ${await check()}`); } catch (error) { console.error(`${label}: ERROR ${error.message}`); process.exitCode = 1; }
+    }
+    try { await readMermaid(); console.log(`Mermaid: OK ${dependencies.version}`); }
+    catch { console.log('Mermaid: 未セットアップ（図を使う場合のみ node setup.js が必要）'); }
+    return;
+  }
+  checkNode();
+  const result = await convert(parsed.input, parsed.output, parsed.options);
   for (const warning of result.warnings) console.error(`mdh: warning: ${warning}`);
   console.log(result.output);
-  if (open) {
+  if (parsed.open) {
     try {
-      const url = pathToFileURL(result.output).href;
-      if (process.platform === 'win32') await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'Start-Process -FilePath $env:MDH_OPEN_URL -ErrorAction Stop'], { env: { ...process.env, MDH_OPEN_URL: url } });
-      else await run('xdg-open', [url]);
-    } catch (e) { console.error(`mdh: warning: ブラウザーを開けませんでした: ${e.message}\n生成済み: ${result.output}`); }
+      await openHtml(result.output);
+    } catch (error) { console.error(`mdh: warning: ブラウザーを開けませんでした: ${error.message}\n生成済み: ${result.output}`); }
   }
 }
-main().catch(e => { console.error(`mdh: error: ${e.message}`); process.exitCode = 1; });
+
+if (isMainModule(import.meta.url)) {
+  main().catch(error => { console.error(`mdh: error: ${error.message}`); process.exitCode = error.exitCode || 1; });
+}

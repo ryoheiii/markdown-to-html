@@ -1,2 +1,3 @@
 #!/usr/bin/env node
-import '../src/cli.js';
+import { main } from '../src/cli.js';
+main().catch(error => { console.error(`mdh: error: ${error.message}`); process.exitCode = error.exitCode || 1; });

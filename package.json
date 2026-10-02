@@ -1,15 +1,23 @@
 {
   "name": "markdown-to-html",
   "private": true,
-  "version": "0.1.0",
-  "description": "Portable offline HTML from Markdown, Pandoc and Mermaid",
-  "repository": { "type": "git", "url": "git+https://github.com/ryoheiii/markdown-to-html.git" },
+  "version": "0.2.0",
+  "description": "Markdown, local images and Mermaid to a portable offline HTML file",
   "type": "module",
-  "license": "MIT",
-  "engines": { "node": ">=24.21.0 <25" },
-  "scripts": {
-    "test": "node --test tests/*.test.js",
-    "test:browser": "node tests/browser.js"
+  "engines": {
+    "node": ">=20.20.0"
   },
-  "devDependencies": { "playwright": "1.58.2" }
+  "scripts": {
+    "setup": "node setup.js",
+    "test": "node --test tests/converter.test.mjs tests/core.test.mjs tests/setup.test.mjs tests/ubuntu-setup.test.mjs",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.58.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryoheiii/markdown-to-html.git"
+  },
+  "license": "MIT"
 }
